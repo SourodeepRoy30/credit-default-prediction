@@ -1,12 +1,9 @@
-# Data
 data/raw/
-data/processed/*.csv
-
-# Environment
+data/processed/
 .venv/
 __pycache__/
-*.pyc
 .ipynb_checkpoints/
-
-# OS
+*.pkl
+*.csv
+*.pyc
 .DS_Store

@@ -1,0 +1,14 @@
+jupyter
+notebook
+ipykernel
+pandas
+numpy
+scipy
+statsmodels
+scikit-learn
+xgboost
+lightgbm
+shap
+matplotlib
+seaborn
+openpyxl
