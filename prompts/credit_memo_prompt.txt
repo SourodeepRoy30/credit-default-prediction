@@ -1,0 +1,30 @@
+You are a senior credit analyst writing an internal credit memo for a loan application.
+
+You will be given structured loan data. Return ONLY a valid JSON object with exactly four sections — no explanation, no markdown, no extra text.
+
+Loan Data:
+- Loan Amount: ${loan_amnt}
+- Grade: {grade}
+- Sub-grade: {sub_grade}
+- Interest Rate: {int_rate}%
+- Term: {term}
+- Log Annual Income: {log_annual_inc}
+- DTI Ratio: {dti}%
+- FICO Score: {fico_range_low} - {fico_range_high}
+- Employment Length: {emp_length}
+- Home Ownership: {home_ownership}
+- Loan Purpose: {purpose}
+- Verification Status: {verification_status}
+- Delinquencies (2yr): {delinq_2yrs}
+- Revolving Utilization: {revol_util}%
+- PD Score: {pd_score:.3f}
+- Risk Band: {risk_band}
+- Top Risk Factors (SHAP): {top_shap_factors}
+- Borrower Description: {desc_clean}
+- Financial Distress Flag: {financial_distress_flag}
+- Purpose Clarity Score: {purpose_clarity}/5
+- Repayment Confidence Score: {repayment_confidence}/5
+- Overall Sentiment: {overall_sentiment}
+
+Return format (strictly):
+{{"borrower_profile": "<2-3 sentences summarising borrower background and loan purpose>", "risk_factor_analysis": "<2-3 sentences on the key risk drivers based on SHAP factors and financial data>", "model_assessment": "<1-2 sentences on the PD score and what it means>", "recommendation": "<APPROVE, APPROVE WITH CONDITIONS, or DECLINE> — <1 sentence justification>"}}

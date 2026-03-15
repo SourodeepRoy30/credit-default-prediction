@@ -1,0 +1,5 @@
+System,TP,FP,FN,Precision,Recall
+EWS (FinBERT + Macro),11,4,0,0.73,1.0
+Baseline 1: Always-on,11,4,0,0.73,1.0
+Baseline 2: Static PD >25%,4,0,7,1.0,0.36
+Baseline 3: News-only EWS,9,4,2,0.69,0.82

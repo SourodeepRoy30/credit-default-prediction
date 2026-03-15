@@ -1,160 +1,193 @@
-# Credit Default Prediction — End-to-End Acquisition Scorecard
+# Credit Risk Intelligence Suite
 
-**Dataset:** Lending Club Public Loan Data (2007–2018) | 1,348,099 Resolved Loans  
-**Stack:** Python · Logistic Regression · XGBoost · LightGBM · WoE/IV · SHAP  
-
----
-
-## Research Question
-
-Can a logistic regression scorecard trained on historical loan data generalise to future originations — and does gradient boosting offer meaningful improvement over a well-specified WoE-encoded scorecard?
+> A production-grade credit risk system combining a PD model, LLM-powered explainability, and a multi-modal Early Warning System — built on 1.3 million Lending Club loans.
 
 ---
 
-## Methodology Overview
+## The Finding
 
-Most published results on the Lending Club dataset report AUROC values of 0.85–0.97. These are almost universally the product of random train/test splitting, retention of post-origination leakage features, or SMOTE oversampling applied before splitting. This project enforces the methodological controls that production credit models require:
-
-- **Temporal train/test split** — 2007–2015 train, 2016–2018 test. No future data informs past predictions.
-- **Leakage removal** — 36 post-origination columns removed (payment history, recovery amounts, updated FICO scores). These would not exist at the point of a lending decision.
-- **WoE encoding fitted on training data only** — WoE bin parameters are never refit on the test set.
+Structured financial features (WoE Logistic Regression, AUROC 0.767) outperform LLM-extracted narrative signals (AUROC 0.517) for probability of default prediction on the description-having loan subset — consistent with credit risk literature prioritising hard financial data over borrower narratives. Adding a FRED macro stream to a FinBERT news signal improves Early Warning System recall from 0.82 to 1.00 across five loan sectors over 2016–2018.
 
 ---
 
-## Project Structure
+## What This Project Builds
+
+Most credit risk projects stop at a model with a good AUROC. This one goes three layers deeper.
+
+**Layer 1 — Production PD Model.** Standard but rigorous: Weight of Evidence encoding across 14 features, Logistic Regression and XGBoost trained on 829k loans, evaluated with AUROC, Gini, and KS. AUROC 0.767.
+
+**Layer 2 — LLM Signal Extraction.** 120,000 borrower descriptions cleaned and analysed. A local LLM (Ollama/llama3.2:3b) extracts five structured signals per description — financial distress flag, purpose clarity, income stability, repayment confidence, overall sentiment — at 99.9% parse rate across 5,000 loans. Four model variants compared. Null result reported honestly.
+
+**Layer 3 — Explainable Credit Memos.** SHAP-grounded credit memos generated for 200 loans using a local LLM. Hallucination evaluation across four dimensions: SHAP consistency 100%, feature accuracy 100%, non-invention rate 98%, grounding rate 94%. Virtual Expert query layer lets analysts interrogate individual loan decisions in natural language.
+
+**Layer 4 — Multi-Modal Early Warning System.** FinBERT sentiment scores combined with FRED macro signals (unemployment, credit card delinquency, fed funds rate, consumer sentiment) into a sector-level EWS. Backtested against actual 2016–2018 default rates. Recall 1.00 — the system never missed a year where defaults rose. Multi-modal vs news-only recall lift: +0.18.
+
+---
+
+## Results
+
+| Component | Metric | Value |
+|---|---|---|
+| WoE Logistic Regression | AUROC | 0.767 |
+| WoE Logistic Regression | Gini | 0.534 |
+| WoE Logistic Regression | KS | 0.380 |
+| TF-IDF Baseline (text only) | AUROC | 0.593 |
+| LLM Signals Only | AUROC | 0.517 |
+| WoE + LLM XGBoost | AUROC | 0.736 |
+| LLM Extraction | Parse Rate | 99.9% (4,993/5,000) |
+| Credit Memo | SHAP Consistency | 100% |
+| Credit Memo | Non-Invention Rate | 98.0% |
+| Virtual Expert | Grounding Rate | 94.0% |
+| Virtual Expert | Accuracy Rate | 100.0% |
+| EWS (Multi-Modal) | Recall | 1.00 |
+| EWS (Multi-Modal) | Precision | 0.73 |
+| EWS vs News-Only | Recall Lift | +0.18 |
+
+---
+
+## Repository Structure
 
 ```
 credit-default-prediction/
 │
-├── data/
-│   ├── raw/                    # Raw Lending Club loan.csv (not tracked)
-│   └── processed/              # Cleaned and encoded datasets (not tracked)
-│
 ├── notebooks/
-│   ├── 01_raw_data_exploration.ipynb
-│   ├── 02_data_cleaning.ipynb
-│   ├── 03_EDA_clean.ipynb
-│   ├── 04_feature_engineering.ipynb
-│   ├── 05_logistic_regression.ipynb
-│   └── 06_gradient_boosting.ipynb
+│   ├── 01_Raw_EDA.ipynb
+│   ├── 02_Data_Cleaning.ipynb
+│   ├── 03_EDA_Clean.ipynb
+│   ├── 04_Feature_Engineering.ipynb
+│   ├── 05_Logistic_Regression.ipynb
+│   ├── 06_Gradient_Boosting.ipynb
+│   ├── 07_Text_EDA.ipynb
+│   ├── 08_LLM_Extraction.ipynb
+│   ├── 09_Combined_PD_Model.ipynb
+│   ├── 10_Credit_Memo_Generator.ipynb
+│   ├── 11_GDELT_Data_Collection.ipynb
+│   ├── 12_FRED_Macro_Signals.ipynb
+│   ├── 13_FinBERT_Sentiment.ipynb
+│   ├── 14_EWS_Ensemble_Construction.ipynb
+│   └── 15_EWS_Historical_Backtest.ipynb
 │
-├── outputs/                    # All charts and plots
+├── models/
+│   ├── lr_model.pkl
+│   ├── xgb_model.pkl
+│   └── shap_explainer.pkl
+│
+├── data/
+│   ├── processed/
+│   │   ├── df_train.pkl
+│   │   ├── df_test.pkl
+│   │   ├── woe_mappings.pkl
+│   │   ├── llm_signals_20k.pkl
+│   │   ├── memos_200.pkl
+│   │   ├── finbert_sentiment_monthly.pkl
+│   │   ├── fred_macro_score.pkl
+│   │   ├── ews_scores.pkl
+│   │   └── actual_default_rates_by_sector.csv
+│
+├── prompts/
+│   ├── extraction_prompt.txt
+│   ├── credit_memo_prompt.txt
+│   └── virtual_expert_prompt.txt
+│
+├── outputs/
+│   ├── model_comparison.csv
+│   ├── memo_evaluation.csv
+│   ├── virtual_expert_evaluation.csv
+│   ├── ews_backtest_comparison.csv
+│   └── *.png
+│
+├── Setup_Check.ipynb
+├── RESPONSIBLE_AI.md
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Notebooks
+## Methodology
 
-| Notebook | Description | Key Output |
-|----------|-------------|------------|
-| 01 | Raw data exploration — target distribution, missing values, temporal analysis | Temporal split defined: 2007–2015 train / 2016–2018 test |
-| 02 | Data cleaning — leakage removal, imputation, outlier correction | 68 features retained, 0 missing values |
-| 03 | EDA on clean data + reject inference | Selection bias confirmed: rejected borrowers avg FICO 637 vs accepted 690 |
-| 04 | WoE encoding + IV-based feature selection | 14 features selected from 24 candidates |
-| 05 | Logistic regression PD model + scorecard + ECL | Test Gini 0.408, KS 0.295, ECL $932M |
-| 06 | Gradient boosting challengers + SHAP + model comparison | XGBoost Test Gini 0.418 (+0.010 vs LR) |
+### PD Model (NB01–06)
 
----
+Raw Lending Club data (1,348,099 loans) cleaned, deduplicated, and split on a temporal boundary (training: loans issued before cutoff, test: after). 14 features encoded using Weight of Evidence binning. Logistic Regression trained as the interpretable baseline; XGBoost as the performance model. SHAP TreeExplainer used for post-hoc attribution.
 
-## Results
+### LLM Signal Extraction (NB07–09)
 
-### Discrimination
+The `desc` field in Lending Club data was discontinued partway through the dataset — only 9.3% of loans have descriptions, concentrated in the training window. A custom cleaning pipeline strips Lending Club boilerplate and HTML artefacts. A structured extraction prompt extracts five signals per description using Ollama (llama3.2:3b), validated at 99.9% parse rate. All four model variants evaluated on an internal 80/20 stratified split of the description-having subset.
 
-| Model | Train Gini | Test Gini | Test KS | Gini Drop |
-|-------|-----------|-----------|---------|-----------|
-| Logistic Regression | 0.4286 | 0.4084 | 0.2946 | 0.0202 |
-| LightGBM | 0.4678 | 0.4174 | 0.3033 | 0.0504 |
-| XGBoost | 0.4580 | 0.4184 | 0.3042 | 0.0396 |
+### Credit Memo Generator (NB10)
 
-Test Gini of 0.408 sits within the standard 0.30–0.50 range for production retail credit scorecards and is directly at par with published results using equivalent temporal methodology on the same dataset.
+For each loan, SHAP values identify the top three risk drivers. A four-section memo is generated via Ollama, grounded strictly in SHAP context and loan features. Hallucination evaluation uses four automated checks: SHAP factor mention in risk analysis (regex-normalised for hyphen/underscore variants), recommendation alignment with risk band, grade citation accuracy, and dollar amount invention rate. Virtual Expert constrains LLM responses to SHAP context only.
 
-Gradient boosting improves Test Gini by only +0.010 over logistic regression — the ROC curves of all three models are visually indistinguishable. This confirms that WoE encoding captures most of the available non-linear signal at application time.
+### Early Warning System (NB11–15)
 
-### Calibration
-
-Train set calibration is near-perfect. The test set shows systematic underprediction of 5–8pp per decile, attributable to a population default rate shift from 18.46% (train) to 22.42% (test) — a known vintage drift effect correctable via intercept recalibration in production.
-
-### Scorecard
-
-| Parameter | Value |
-|-----------|-------|
-| Score range | 377 – 529 |
-| Base score | 444 |
-| PDO | 20 |
-| Target odds | 50:1 at 600 points |
-| Dominant feature | sub_grade (63-point range: A1 = +37, G5 = −26) |
-
-### ECL
-
-| Model | Total ECL | ECL / EAD | Coverage of Actual Loss |
-|-------|-----------|-----------|------------------------|
-| Logistic Regression | $932M | 12.43% | 79.03% |
-| LightGBM | $976M | 13.01% | 82.74% |
-| XGBoost | $980M | 13.06% | 83.06% |
-| Actual observed loss | $1,179M | 15.73% | 100% |
-
-ECL computed as PD × LGD × EAD using empirical LGD of 64.75% derived from 153,065 training-period defaults.
+Two signal streams combined at 60/40 weighting (news-led, macro-confirming). FinBERT (ProsusAI/finbert) scores sector-specific financial headlines monthly. FRED macro signals z-scored against 2015 baseline and clipped at ±3 to prevent near-zero-variance series (FEDFUNDS, DRCCLACBS) from dominating the composite. EWS trigger: score > (2015 mean + 1.5σ), held for minimum 3 months. Backtested against actual test-set default rates by sector and year.
 
 ---
 
-## Feature Importance (SHAP — XGBoost)
+## Stack
 
-| Rank | Feature | Mean |SHAP| | Direction |
-|------|---------|-------------|-----------|
-| 1 | sub_grade | 0.486 | Higher grade → higher default risk |
-| 2 | term | 0.234 | 60-month → higher risk vs 36-month |
-| 3 | fico_range_low | 0.154 | Higher FICO → lower default risk |
-| 4 | dti | 0.137 | Higher DTI → higher default risk |
-| 5 | log_annual_inc | 0.126 | Higher income → lower default risk |
+| Category | Tools |
+|---|---|
+| Core ML | scikit-learn, XGBoost, LightGBM |
+| Explainability | SHAP |
+| LLM Inference | Ollama (llama3.2:3b), Groq API |
+| NLP | FinBERT (ProsusAI), VADER, sentence-transformers |
+| Macro Data | FRED API (fredapi) |
+| News Data | GDELT API (synthetic fallback — see RESPONSIBLE_AI.md) |
+| Data | pandas, numpy, scipy |
+| Visualisation | matplotlib, seaborn |
+| Environment | Python 3.14, VS Code, Jupyter |
 
-SHAP ranking is consistent with IV ranking from feature selection — confirming internal consistency across the pipeline.
+---
+
+## Responsible AI
+
+All LLM inference runs locally via Ollama. No borrower data is transmitted to external services. SHAP is used throughout to ensure model decisions are auditable. Known limitations — synthetic signal inputs, description coverage bias, small EWS evaluation window — are documented in `RESPONSIBLE_AI.md`.
+
+The credit memo generator includes a hallucination evaluation framework precisely because ungrounded LLM outputs in a credit context carry regulatory and reputational risk. The Virtual Expert is explicitly constrained to refuse answers not supported by the loan context.
+
+---
+
+## Known Limitations
+
+- Borrower descriptions available for only 9.3% of loans, concentrated before the temporal test cutoff — LLM signal models evaluated on internal split only, not directly comparable to structured models
+- Description-having subset underrepresents defaulters (7.28% vs 9.86% coverage) — mild selection bias noted
+- GDELT API rate-limited during collection — EWS news stream uses synthetic signals based on known macro events; production deployment requires live feed
+- EWS evaluated at annual granularity due to test set lacking monthly issue dates — reduces backtest resolution
+- EWS flag rates (52–75%) elevated due to synthetic signal bias; real GDELT data would produce lower false positive rates
 
 ---
 
 ## Setup
 
-### Requirements
-
 ```bash
+git clone https://github.com/<your-username>/credit-default-prediction
+cd credit-default-prediction
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+
+# Install and start Ollama
+# https://ollama.ai
+ollama pull llama3.2:3b
+ollama serve
+
+# Set API keys
+cp .env.example .env
+# Add FRED_API_KEY and GROQ_API_KEY to .env
+
+# Verify environment
+jupyter notebook Setup_Check.ipynb
 ```
 
-### Data
-
-Download the Lending Club loan data from [Kaggle](https://www.kaggle.com/datasets/wordsforthewise/lending-club) and place `loan.csv` in `data/raw/`.
-
-### Run Order
-
-Run notebooks in sequence: 01 → 02 → 03 → 04 → 05 → 06.  
-Each notebook saves intermediate outputs to `data/processed/` for the next stage.
+Run notebooks in sequence 01 → 15. Each notebook loads artefacts from the previous stage — do not skip steps.
 
 ---
 
-## Key Design Decisions
+## Data
 
-**Why temporal splitting?**  
-Random splitting of a loan dataset allows future loans to inform past predictions, inflating AUROC. A temporal split mirrors real deployment conditions where a model trained on historical data is applied to future originations.
-
-**Why WoE encoding for logistic regression?**  
-Logistic regression assumes a linear relationship between each feature and the log-odds of default. WoE transforms each feature into log-odds space directly, satisfying this assumption by construction and enabling a fully interpretable points-based scorecard.
-
-**Why logistic regression as champion?**  
-Gradient boosting improved Test Gini by only +0.010. The marginal discrimination gain does not justify the loss of interpretability in a regulated context where model coefficients must be explainable to risk teams and regulators.
+Download the Lending Club loan dataset from [Kaggle](https://www.kaggle.com/datasets/wordsforthewise/lending-club). Place the raw CSV in `data/raw/`. The `desc` column must be retained — some Kaggle versions drop it.
 
 ---
 
-## Limitations
-
-- **Reject inference** — model trained on accepted loans only (~10% of all applications). Predicted PDs will underestimate default risk for borrower profiles Lending Club historically rejected.
-- **Fixed LGD** — a single empirical LGD of 64.75% applied to all loans. In practice LGD varies by loan purpose and macroeconomic cycle.
-- **Calibration shift** — requires intercept recalibration before deployment in any period with a materially different population default rate from the training period.
-
----
-
-## Author
-
-**Sourodeep Roy**  
-MSc Data Science & Analytics, University of Leeds (Distinction)  
-[linkedin.com/in/sourodeeproy](https://linkedin.com/in/sourodeeproy) · [github.com/SourodeepRoy30](https://github.com/SourodeepRoy30)
+*Built by Sourodeep Roy — [LinkedIn](https://www.linkedin.com/in/sourodeeproy/)*

@@ -1,0 +1,2 @@
+model,auroc,gini,ks,n_train,n_test
+TF-IDF Logistic Regression (text only),0.5931,0.1862,0.1398,96107,24027

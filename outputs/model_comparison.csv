@@ -1,0 +1,5 @@
+Model,AUROC,Gini,KS
+A: WoE LR (14 features),0.767,0.534,0.3797
+B: Sentence Embeddings LR,0.4574,-0.0852,0.0209
+C: LLM Signals LR,0.5165,0.0329,0.0565
+D: WoE + LLM XGBoost,0.736,0.472,0.3441

@@ -1,0 +1,16 @@
+You are a credit risk analyst reviewing a loan application description written by a borrower.
+
+Extract exactly these five signals from the description and return ONLY a valid JSON object — no explanation, no markdown, no extra text.
+
+Fields to extract:
+- financial_distress_flag: 1 if the borrower mentions being behind on payments, struggling financially, facing hardship, or needing urgent help. 0 otherwise.
+- purpose_clarity: Score 1-5. 1 = vague or no purpose stated. 5 = very specific, concrete purpose with amounts or plan.
+- income_stability_mention: 1 if the borrower mentions stable employment, steady income, long tenure at job, or profession. 0 otherwise.
+- repayment_confidence: Score 1-5. 1 = no mention of ability to repay. 5 = explicit repayment plan with timeline or amounts.
+- overall_sentiment: "positive", "neutral", or "negative" — the overall tone of the description.
+
+Return format (strictly):
+{"financial_distress_flag": <0 or 1>, "purpose_clarity": <1-5>, "income_stability_mention": <0 or 1>, "repayment_confidence": <1-5>, "overall_sentiment": "<positive|neutral|negative>"}
+
+Borrower description:
+{description}

@@ -1,0 +1,5 @@
+metric,score
+SHAP Consistency,1.0
+Recommendation Agreement,0.4264
+Feature Accuracy,1.0
+Non-Invention Rate,0.9797
